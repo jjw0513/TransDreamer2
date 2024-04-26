@@ -106,12 +106,12 @@ def train(model, cfg, device):
   train_env = make_env(cfg, writer, 'train', datadir, store=True)
   test_env = make_env(cfg, writer, 'test', test_datadir, store=True)
 
-  # fill in length of 5000 frames
+  # fill in length of 5000 frames # 그냥 랜덤행동으로 5000개 채워서 일단 기본적인 행동들 exploration 하는 부분
   train_env.reset()
   steps = count_steps(datadir, cfg)
   length = 0
-  while steps < cfg.arch.prefill:
-    action = train_env.sample_random_action()
+  while steps < cfg.arch.prefill: # prefill 이라고 되어있는 것에서 알수 있듯이 그냥 채우는거
+    action = train_env.sample_random_action() # 진짜 말 그대로 random action 을 뽑겠다는 뜻
     next_obs, reward, done = train_env.step(action[0])
     length += 1
     steps += done * length
@@ -156,7 +156,7 @@ def train(model, cfg, device):
       model.train()
 
       traj = next(train_iter)
-      for k, v in traj.items():
+      for k, v in traj.items(): # traj 는 지금 dict 로 불러져왔으니까 각각을 device 로 보내는 작업이 필요함
         traj[k] = v.to(device).float()
 
       logs = {}

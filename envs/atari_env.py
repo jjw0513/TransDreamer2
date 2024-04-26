@@ -22,7 +22,7 @@ class Atari:
       name = 'jamesbond'
     with self.LOCK:
       env = gym.envs.atari.AtariEnv(
-          game=name, obs_type='image', frameskip=1,
+          game=name, obs_type='rgb', frameskip=1,
           repeat_action_probability=0.25 if sticky_actions else 0.0,
           full_action_space=all_actions)
       env.seed(seed=seed)
@@ -91,7 +91,7 @@ class OneHotAction():
     return self._env.reset()
 
   def sample_random_action(self):
-    action = np.zeros((1, self._env.action_space.n,), dtype=np.float)
+    action = np.zeros((1, self._env.action_space.n,), dtype=float)
     idx = np.random.randint(0, self._env.action_space.n, size=(1,))[0]
     action[0, idx] = 1
     return action

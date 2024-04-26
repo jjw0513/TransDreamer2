@@ -224,10 +224,10 @@ class TransformerWorldModel(nn.Module):
     model_loss.backward()
     grad_norm_model = torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
     if (global_step % self.log_every_step == 0) and self.log_grad:
-      for n, p in self.named_parameters():
+      for n, p in self.named_parameters(): #self.parameters()
         if p.requires_grad:
           try:
-            writer.add_scalar('grads/' + n, p.grad.norm(2), global_step)
+            writer.add_scalar('grads/' + n, p.grad.norm(2), global_step) # tensorboard 에서 기록하는 방법
           except:
             pdb.set_trace()
     model_optimizer.step()
