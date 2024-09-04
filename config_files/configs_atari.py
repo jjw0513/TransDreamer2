@@ -104,8 +104,9 @@ cfg = CN({
 
   'env':{
     'action_size': 18,
-    'name': 'atari_boxing',
-    'action_repeat': 4,
+    #'name': 'atari_boxing',
+    'name' : 'minigrid_MiniGrid-Empty-5x5',
+    'action_repeat': 1,
     'max_steps': 1000,
     'life_done': False,
     'precision': 32,

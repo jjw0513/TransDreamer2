@@ -112,7 +112,7 @@ def train(model, cfg, device):
   length = 0
   while steps < cfg.arch.prefill: # prefill 이라고 되어있는 것에서 알수 있듯이 그냥 채우는거
     action = train_env.sample_random_action() # 진짜 말 그대로 random action 을 뽑겠다는 뜻
-    next_obs, reward, done = train_env.step(action[0])
+    next_obs, reward, done,_,_ = train_env.step(action[0])
     length += 1
     steps += done * length
     length = length * (1. - done)

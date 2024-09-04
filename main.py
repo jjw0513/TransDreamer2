@@ -6,13 +6,13 @@ from envs.atari_env import Atari
 import os
 import argparse
 import pdb
-
+import gym
 def get_config():
   parser = argparse.ArgumentParser(description='args for Seq_ROOTS project')
 
   parser.add_argument('--task', type=str, default='train',
                          help='which task to perfrom: train')
-  parser.add_argument('--config-file', type=str, default='',
+  parser.add_argument('--config-file', type=str, default='config_files/configs_atari.py',
                          help='config file')
   parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                       help='using command line to modify configs.')
@@ -38,6 +38,7 @@ def get_config():
   return task, cfg
 
 if __name__ == '__main__':
+ # print(gym.envs.registry)
   task, cfg = get_config()
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
   model = get_model(cfg, device, cfg.seed)
