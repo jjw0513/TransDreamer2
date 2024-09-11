@@ -58,7 +58,7 @@ class Atari:
       image = self._env.reset()
     if self._grayscale:
       image = image[..., None]
-    image = np.transpose(image, (2, 0, 1)) # 3, 64, 64
+    image = np.transpose(image, (2, 0, 1)) # (1, 64, 64)
     return {'image': image}
 
   def step(self, action):

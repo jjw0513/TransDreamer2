@@ -13,7 +13,8 @@ cfg = CN({
   'arch':{
     'use_pcont': True,
     'mem_size': 100000,
-    'prefill': 50000,
+    #'prefill': 50000,
+  'prefill': 1000,
     'H': 15,
     'world_model': {
       'reward_layer': 0,
@@ -103,7 +104,7 @@ cfg = CN({
   },
 
   'env':{
-    'action_size': 18,
+    'action_size': 6,
     #'name': 'atari_boxing',
     'name' : 'minigrid_MiniGrid-Empty-5x5',
     'action_repeat': 1,
