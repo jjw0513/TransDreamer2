@@ -14,6 +14,58 @@ from custom_env.GymMoreRedBalls import GymMoreRedBalls
 from gymnasium.core import Wrapper
 
 
+
+
+class ActionSpaceWrapper(Wrapper):
+  def __init__(self, env: gym.Env, max_steps, new_action_space: int):
+    super().__init__(env)
+    self.new_action_space = new_action_space
+    self.action_space = spaces.Discrete(new_action_space)
+    self.env.action_space = self.action_space
+
+    self.max_steps = max_steps
+    self.env.max_steps = max_steps
+
+  def reset(self, **kwargs):
+    # Reset the environment and update the max_steps
+    state = super().reset()
+
+    self.env.max_steps = self.max_steps
+    return state
+
+
+class MaxStepsWrapper(Wrapper):
+  def __init__(self, env: gym.Env, max_steps: int,action_repeat,
+               new_action_space=3):
+    super().__init__(env)
+    self.max_steps = max_steps
+    self.env.max_steps = max_steps
+    self.env.env.max_steps = max_steps
+
+
+    # self._env.seed(seed)
+
+    self.action_repeat = action_repeat
+
+
+    self.action_space = spaces.Discrete(new_action_space)
+    self.env.action_space = self.action_space
+    self.env.env.action_space = self.action_space
+    # self.env.env.evm.action_space = self.action_space
+
+  def reset(self, **kwargs):
+    state = super().reset()
+
+    self.env.max_steps = self.max_steps
+    return state
+
+  def step(self, action):
+    observation, r, terminated, truncated, info = self.env.step(action)
+
+    return observation, r, terminated, truncated, info
+
+
+
 class FullyCustom(FullyObsWrapper):
   def __init__(self, env: gym.Env, max_steps: int):
     super().__init__(env)
@@ -23,27 +75,29 @@ class FullyCustom(FullyObsWrapper):
   def reset(self, **kwargs):
     # Reset the environment and update the max_steps
     state = super().reset()
-    if 'options' in kwargs and 'max_steps' in kwargs['options']:
-      self.env.max_steps = kwargs['options']['max_steps']
-    else:
-      self.env.max_steps = self.max_steps
+
+    self.env.max_steps = self.max_steps
     return state
+
 class GymGridEnv():
   LOCK = threading.Lock()
 
-  def __init__(self, name, action_repeat, max_steps=245, life_done=False):
+  def __init__(self, name, action_repeat, max_steps, life_done=False):
     super().__init__()
     with self.LOCK:
-      env = GymMoreRedBalls(room_size=10)
+      env = GymMoreRedBalls(room_size=10,render_mode ="rgb_array")
       #env = RGBImgPartialObsWrapper(env, tile_size=9)  # Get pixel observations, (63, 63, 3)
-      self._env = FullyCustom(env, max_steps=245)  # Get rid of the 'mission' field
-      self._env.max_steps = max_steps
+      env = ActionSpaceWrapper(env, max_steps,new_action_space=3)
+      env = FullyCustom(env, max_steps)  # Get rid of the 'mission' field
+      self._env = MaxStepsWrapper(env, max_steps, action_repeat, new_action_space=3)
+      self._env.max_steps = max_steps #self._env.env.env.env.env.max_steps = 5000
     self.action_repeat = action_repeat
     self._step_counter = 0
     self._random = np.random.RandomState(seed=None)
     self.life_done = life_done
     self.max_steps = max_steps
-    self.action_size = 6
+    #self.action_size = 6
+    self.action_size = 3
 
   def reset(self):
 
@@ -112,7 +166,7 @@ class GymGridEnv():
 class OneHotAction():
   def __init__(self, env):
     self._env = env
-
+    pass
   def __getattr__(self, name):
     return getattr(self._env, name)
 
@@ -219,7 +273,7 @@ class RewardObs:
 
   def __init__(self, env):
     self._env = env
-
+    pass
   def __getattr__(self, name):
     return getattr(self._env, name)
 

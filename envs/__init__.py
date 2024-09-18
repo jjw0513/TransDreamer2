@@ -79,13 +79,13 @@ def make_env(cfg, writer, prefix, datadir, store, seed=0):
   #  env = MaxStepsWrapper(env,max_steps=1000, new_action_space=3)
 
   elif suite == 'minigrid' :
-    env = GymGridEnv(task,cfg.env.action_repeat)
+    env = GymGridEnv(task,cfg.env.action_repeat,cfg.env.max_steps)
     env = OneHotAction(env)
 
   else:
     raise NotImplementedError(suite)
 
-  env = TimeLimit(env, cfg.env.time_limit, cfg.env.time_penalty)
+  #env = TimeLimit(env, cfg.env.time_limit, cfg.env.time_penalty)
 
   callbacks = []
   if store:
