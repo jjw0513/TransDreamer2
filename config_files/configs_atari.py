@@ -13,7 +13,8 @@ cfg = CN({
   'arch':{
     'use_pcont': True,
     'mem_size': 100000,
-    'prefill': 50000,
+    #'prefill': 50000,
+  'prefill': 1000,
     'H': 15,
     'world_model': {
       'reward_layer': 0,
@@ -103,16 +104,20 @@ cfg = CN({
   },
 
   'env':{
-    'action_size': 18,
-    'name': 'atari_boxing',
-    'action_repeat': 4,
-    'max_steps': 1000,
+    'action_size': 3,
+    #'name': 'atari_boxing',
+    'name' : 'minigrid_MiniGrid-GymMoreRedBalls-v0',
+    'action_repeat': 1,
+    #'max_steps': 1000,
     'life_done': False,
     'precision': 32,
-    'time_limit': 108000,
-    'grayscale': True,
-    'all_actions': True,
-    'time_penalty': 0.0,
+    #'time_limit': 108000,
+    #'grayscale': True,
+    'grayscale': False,
+    'all_actions': False,
+    #all_actions': True,
+    #'time_penalty': 0.0,
+    'max_steps' : 5000,
   },
   'rl': {
     'discount': 0.999,

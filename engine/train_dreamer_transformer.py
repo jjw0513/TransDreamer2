@@ -110,9 +110,15 @@ def train(model, cfg, device):
   train_env.reset()
   steps = count_steps(datadir, cfg)
   length = 0
-  while steps < cfg.arch.prefill: # prefill 이라고 되어있는 것에서 알수 있듯이 그냥 채우는거
+  while steps < cfg.arch.prefill: # prefill 이라고 되어있는 것에서 알수 있듯이 그냥 채우는거(지정한 step 수를 넘기면 breakk)
     action = train_env.sample_random_action() # 진짜 말 그대로 random action 을 뽑겠다는 뜻
     next_obs, reward, done = train_env.step(action[0])
+
+    #action = train_env.action_space.sample()
+    #next_obs, reward, done,_,_ = train_env.step(action)
+
+    # print("next_obs:",next_obs)
+    # print("reward :",reward)
     length += 1
     steps += done * length
     length = length * (1. - done)
@@ -120,7 +126,7 @@ def train(model, cfg, device):
       train_env.reset()
 
   steps = count_steps(datadir, cfg)
-  print(f'collected {steps} steps. Start training...')
+  print(f'collected {steps} steps. Start training...') #여기서 steps은 random action을 취해 리턴을 받은 총 steps을 의미(에피소드1,2,...의 steps 모든 합)
   train_ds = EnvIterDataset(datadir, cfg.train.train_steps, cfg.train.batch_length)
   train_dl = DataLoader(train_ds, batch_size=cfg.train.batch_size, num_workers=4)
   train_iter = iter(train_dl)
@@ -137,11 +143,21 @@ def train(model, cfg, device):
 
     with torch.no_grad():
       model.eval()
+
+      #next_obs, reward, done = train_env.step(action_list[0, -1].detach().cpu().numpy())
       next_obs, reward, done = train_env.step(action_list[0, -1].detach().cpu().numpy())
+
+      #torch.Size([1, 1, 64, 64])
       prev_image = torch.tensor(obs[input_type])
       next_image = torch.tensor(next_obs[input_type])
+
+      #prev_image = torch.tensor(obs)
+      #next_image = torch.tensor(next_obs)
+      #global step 고려하기
+
       action_list, state = model.policy(prev_image.to(device), next_image.to(device), action_list.to(device),
                                         global_step, 0.1, state, context_len=cfg.train.batch_length)
+
       obs = next_obs
       if done:
         train_env.reset()
@@ -166,7 +182,7 @@ def train(model, cfg, device):
       transformer_optimizer = optimizers['transformer_optimizer']
       if transformer_optimizer is not None:
         transformer_optimizer.zero_grad()
-      model_loss, model_logs, prior_state, post_state = model.world_model_loss(global_step, traj, temp)
+      model_loss, model_logs, prior_state, post_state = model.world_model_loss(global_step, traj, temp) #here is problem
       grad_norm_model = model.world_model.optimize_world_model(model_loss, model_optimizer, transformer_optimizer, writer, global_step)
       if cfg.arch.world_model.transformer.warm_up:
         lr = anneal_learning_rate(global_step, cfg)
@@ -209,3 +225,4 @@ def train(model, cfg, device):
       checkpointer.save('', model, optimizers, global_step, env_step)
 
     global_step += 1
+    pass

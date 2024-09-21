@@ -5,7 +5,7 @@ from .modules_transformer import TransformerWorldModel, DenseDecoder, ActionDeco
 import torch
 import torch.nn as nn
 import pdb
-
+#import movipy
 class TransDreamer(nn.Module):
   def __init__(self, cfg):
     super().__init__()
@@ -70,10 +70,12 @@ class TransDreamer(nn.Module):
 
     rec_img = logs['dec_img']
     gt_img = logs['gt_img']  # B, {1:T}, C, H, W
+    if rec_img.shape[2] == 1:
+      rec_img = rec_img.repeat(1, 1, 3, 1, 1)
 
-    writer.add_video('train/rec - gt',
-                      torch.cat([gt_img[:4], rec_img[:4]], dim=-2).clamp(0., 1.).cpu(),
-                      global_step=global_step)
+    # writer.add_video('train/rec - gt',
+    #                   torch.cat([gt_img[:4], rec_img[:4]], dim=-2).clamp(0., 1.).cpu(),
+    #                   global_step=global_step)
 
     for k, v in logs.items():
 
@@ -238,9 +240,9 @@ class TransDreamer(nn.Module):
     :param prior:
     :return:
     """
-    obs = obs.unsqueeze(1) / 255. - 0.5 # B, T, C, H, W
-    obs_emb = self.world_model.dynamic.img_enc(obs) # B, T, C
-    post = self.world_model.dynamic.infer_post_stoch(obs_emb, temp, action=None) # B, T, N, C
+    obs = obs.unsqueeze(1) / 255. - 0.5 # B, T, C, H, W : torch.Size([1, 1, 3, 64, 64])
+    obs_emb = self.world_model.dynamic.img_enc(obs) # B, T,C
+    post  = self.world_model.dynamic.infer_post_stoch(obs_emb, temp, action=None) # B, T, N, C
 
     if state is None:
       state = post

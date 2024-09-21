@@ -264,7 +264,7 @@ class TransformerDynamic(nn.Module):
     else:
       latent_dim = self.stoch_size
       latent_dim_out = latent_dim * 2
-    self.act_stoch_mlp = Linear(action_size + latent_dim, self.d_model, weight_init=weight_init)
+    self.act_stoch_mlp = Linear(action_size + latent_dim, self.d_model, weight_init=weight_init)  #action_size + latent_dim = 1042
     self.q_trans = cfg.arch.q_trans
     self.q_emb_action = cfg.arch.world_model.q_emb_action
     q_emb_size = 1536
@@ -510,13 +510,24 @@ class ImgEncoder(nn.Module):
 
     self.q_trans = cfg.arch.q_trans
     depth = 48
-    c_in = 1 if cfg.env.grayscale else 3
+    #c_in = 1 if cfg.env.grayscale else 3
+    c_in = 3
     self.enc = nn.Sequential(
       Conv2DBlock(c_in, depth, 4, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu', weight_init='xavier'),
       Conv2DBlock(depth, 2*depth, 4, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu', weight_init='xavier'),
       Conv2DBlock(2*depth, 4*depth, 4, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu', weight_init='xavier'),
       Conv2DBlock(4*depth, 8*depth, 4, 2, 0, num_groups=0, bias=True, non_linearity=not self.q_trans, act='elu', weight_init='xavier'),
     )
+
+    # self.enc = nn.Sequential(
+    #   Conv2DBlock(c_in, depth, 1, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu', weight_init='xavier'),
+    #   Conv2DBlock(depth, 2 * depth, 1, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu',
+    #               weight_init='xavier'),
+    #   Conv2DBlock(2 * depth, 4 * depth, 1, 2, 0, num_groups=0, bias=True, non_linearity=True, act='elu',
+    #               weight_init='xavier'),
+    #   Conv2DBlock(4 * depth, 8 * depth, 1, 2, 0, num_groups=0, bias=True, non_linearity=not self.q_trans, act='elu',
+    #               weight_init='xavier'),
+    # )
 
   def forward(self, ipts):
     """
@@ -525,7 +536,7 @@ class ImgEncoder(nn.Module):
     """
 
     shapes = ipts.shape
-    o = self.enc(ipts.view([-1] + [*shapes[-3:]]))
+    o = self.enc(ipts.view([-1] + [*shapes[-3:]]))  #here is problem : ipts.view([-1] + [*shapes[-3:]]) : torch.Size([1, 3, 64, 64])
     o = o.reshape([*shapes[:-3]] + [1536])
 
     return o

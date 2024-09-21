@@ -1,12 +1,22 @@
 import numpy as np
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from .atari_env import OneHotAction, TimeLimit, Collect, RewardObs
+#from .atari_env import OneHotAction, TimeLimit, Collect, RewardObs
 from .atari_env import Atari
 from .crafter import Crafter
 from .tools import count_episodes, save_episodes, video_summary
+#from .minigrid_env import GymGridEnv, OneHotAction, TimeLimit, Collect, RewardObs
+from .minigrid_wrapper import GymGridEnv, OneHotAction, TimeLimit, Collect, RewardObs
 import pathlib
 import pdb
 import json
+
+from custom_env.GymMoreRedBalls import GymMoreRedBalls
+from custom_env.wrapper import MaxStepsWrapper
+from custom_env.wrapper import FullyCustom
+from custom_env.wrapper import ActionSpaceWrapper
 
 def count_steps(datadir, cfg):
   return tools.count_episodes(datadir)[1]
@@ -60,10 +70,22 @@ def make_env(cfg, writer, prefix, datadir, store, seed=0):
     env = Crafter(task, (64, 64), seed)
     env = OneHotAction(env)
 
+
+  #elif suite == "minigrid" :
+
+  #  env = GymMoreRedBalls(room_size=10, render_mode="rgb_array")
+  #  env = ActionSpaceWrapper(env, max_steps=1000, new_action_space=3)
+  #  env = FullyCustom(env, max_steps=1000)
+  #  env = MaxStepsWrapper(env,max_steps=1000, new_action_space=3)
+
+  elif suite == 'minigrid' :
+    env = GymGridEnv(task,cfg.env.action_repeat,cfg.env.max_steps)
+    env = OneHotAction(env)
+
   else:
     raise NotImplementedError(suite)
 
-  env = TimeLimit(env, cfg.env.time_limit, cfg.env.time_penalty)
+  #env = TimeLimit(env, cfg.env.time_limit, cfg.env.time_penalty)
 
   callbacks = []
   if store:
@@ -72,5 +94,7 @@ def make_env(cfg, writer, prefix, datadir, store, seed=0):
       lambda ep: summarize_episode(ep, cfg, datadir, writer, prefix))
   env = Collect(env, callbacks, cfg.env.precision)
   env = RewardObs(env)
+
+
 
   return env

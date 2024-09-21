@@ -3,7 +3,8 @@ import threading
 import gymnasium as gym
 import gym
 import gym_minigrid
-from gym_minigrid.wrappers import *
+#from gym_minigrid.wrappers import *
+from minigrid.wrappers import *
 import cv2
 import torch
 from torch import distributions as torchd
@@ -11,22 +12,92 @@ import numpy as np
 import pdb
 from custom_env.GymMoreRedBalls import GymMoreRedBalls
 from gymnasium.core import Wrapper
-class GymGridEnv(Wrapper):
+
+
+
+
+class ActionSpaceWrapper(Wrapper):
+  def __init__(self, env: gym.Env, max_steps, new_action_space: int):
+    super().__init__(env)
+    self.new_action_space = new_action_space
+    self.action_space = spaces.Discrete(new_action_space)
+    self.env.action_space = self.action_space
+
+    self.max_steps = max_steps
+    self.env.max_steps = max_steps
+
+  def reset(self, **kwargs):
+    # Reset the environment and update the max_steps
+    state = super().reset()
+
+    self.env.max_steps = self.max_steps
+    return state
+
+
+class MaxStepsWrapper(Wrapper):
+  def __init__(self, env: gym.Env, max_steps: int,action_repeat,
+               new_action_space=3):
+    super().__init__(env)
+    self.max_steps = max_steps
+    self.env.max_steps = max_steps
+    self.env.env.max_steps = max_steps
+
+
+    # self._env.seed(seed)
+
+    self.action_repeat = action_repeat
+
+
+    self.action_space = spaces.Discrete(new_action_space)
+    self.env.action_space = self.action_space
+    self.env.env.action_space = self.action_space
+    # self.env.env.evm.action_space = self.action_space
+
+  def reset(self, **kwargs):
+    state = super().reset()
+
+    self.env.max_steps = self.max_steps
+    return state
+
+  def step(self, action):
+    observation, r, terminated, truncated, info = self.env.step(action)
+
+    return observation, r, terminated, truncated, info
+
+
+
+class FullyCustom(FullyObsWrapper):
+  def __init__(self, env: gym.Env, max_steps: int):
+    super().__init__(env)
+    self.max_steps = max_steps
+    self.env.max_steps = max_steps
+
+  def reset(self, **kwargs):
+    # Reset the environment and update the max_steps
+    state = super().reset()
+
+    self.env.max_steps = self.max_steps
+    return state
+
+class GymGridEnv():
   LOCK = threading.Lock()
 
-  def __init__(self, name, action_repeat, max_steps=245, life_done=False):
-
+  def __init__(self, name, action_repeat, max_steps, life_done=False):
+    super().__init__()
     with self.LOCK:
-      env = gym.make("MiniGrid-Empty-5x5-v0", render_mode="rgb_array")
-      env = RGBImgPartialObsWrapper(env, tile_size=9)  # Get pixel observations, (63, 63, 3)
-      self._env = ImgObsWrapper(env)  # Get rid of the 'mission' field
-      self._env.max_steps = max_steps
+      env = GymMoreRedBalls(room_size=10,render_mode ="rgb_array")
+      #env = RGBImgPartialObsWrapper(env, tile_size=9)  # Get pixel observations, (63, 63, 3)
+      env = ActionSpaceWrapper(env, max_steps,new_action_space=3)
+      env = FullyCustom(env, max_steps)  # Get rid of the 'mission' field
+      self._env = MaxStepsWrapper(env, max_steps, action_repeat, new_action_space=3)
+      self._env.max_steps = max_steps #self._env.env.env.env.env.max_steps = 5000
     self.action_repeat = action_repeat
     self._step_counter = 0
     self._random = np.random.RandomState(seed=None)
     self.life_done = life_done
     self.max_steps = max_steps
-    self.action_size = 6
+    #self.action_size = 6
+    self.action_size = 3
 
   def reset(self):
 
@@ -35,7 +106,7 @@ class GymGridEnv(Wrapper):
       observation = self._env.reset()
 
     if isinstance(observation, tuple):
-      observation = observation[0]  # 첫 번째 값이 이미지일 가능성이 큼
+      observation = observation[0]['image']  # 첫 번째 값이 이미지일 가능성이 큼
 
     #  observation = self._env.render(mode='rgb_array')
     observation = cv2.resize(observation, (64, 64), interpolation=cv2.INTER_LINEAR)
@@ -49,7 +120,7 @@ class GymGridEnv(Wrapper):
     reward = 0
     RESET = False
     for k in range(self.action_repeat):
-      observation, reward_k, done, info = self._env.step(action)
+      observation, reward_k, done, _,info = self._env.step(action)
       reward += reward_k
       self._step_counter += 1  # Increment internal timer
 
@@ -62,6 +133,12 @@ class GymGridEnv(Wrapper):
 
       if RESET:
         break
+
+    if isinstance(observation, dict) :
+      observation = observation['image']
+
+    elif isinstance(observation, tuple) :
+      observation = observation[0]['image']
 
     # observation = self._env.render(mode='rgb_array')
     observation = cv2.resize(observation, (64, 64), interpolation=cv2.INTER_LINEAR)
@@ -89,7 +166,7 @@ class GymGridEnv(Wrapper):
 class OneHotAction():
   def __init__(self, env):
     self._env = env
-
+    pass
   def __getattr__(self, name):
     return getattr(self._env, name)
 
@@ -105,7 +182,7 @@ class OneHotAction():
     return self._env.reset()
 
   def sample_random_action(self):
-    action = np.zeros((1, self._env.action_space.n,), dtype=np.float)
+    action = np.zeros((1, self._env.action_space.n,), dtype=float)
     idx = np.random.randint(0, self._env.action_space.n, size=(1,))[0]
     action[0, idx] = 1
     return action
@@ -150,7 +227,7 @@ class Collect:
     return getattr(self._env, name)
 
   def step(self, action):
-    action = action[0]
+    #action = action[0]
     obs, reward, done, info = self._env.step(action)
     obs = {k: self._convert(v) for k, v in obs.items()}
     transition = obs.copy()
@@ -196,7 +273,7 @@ class RewardObs:
 
   def __init__(self, env):
     self._env = env
-
+    pass
   def __getattr__(self, name):
     return getattr(self._env, name)
 
@@ -208,6 +285,7 @@ class RewardObs:
     return gym.spaces.Dict(spaces)
 
   def step(self, action):
+
     obs, reward, done, info = self._env.step(action)
     obs['reward'] = reward
     return obs, reward, done
