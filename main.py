@@ -59,6 +59,14 @@ if __name__ == '__main__':
   args = parser.parse_args()
   task, cfg = get_config()
 
+  wandb.init(project=args.wandb_project, entity=args.wandb_entity, config={
+    "batch_size": cfg.train.batch_size,
+    # "overshooting_distance": cfg.overshooting_distance,
+
+    # "planning_discount": cfg.discount,
+    "total_episodes": cfg.total_steps,
+    "max_steps": cfg.env.max_steps,
+})
   # wandb.init(project=args.wandb_project, entity=args.wandb_entity, config={
   #   "batch_size": cfg.batch_size,
   #   # "overshooting_distance": args.overshooting_distance,

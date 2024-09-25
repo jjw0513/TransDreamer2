@@ -61,6 +61,8 @@ class MaxStepsWrapper(Wrapper):
 
   def step(self, action):
     observation, r, terminated, truncated, info = self.env.step(action)
+    if terminated is True :
+      pass
 
     return observation, r, terminated, truncated, info
 
@@ -91,6 +93,7 @@ class GymGridEnv():
       env = FullyCustom(env, max_steps)  # Get rid of the 'mission' field
       self._env = MaxStepsWrapper(env, max_steps, action_repeat, new_action_space=3)
       self._env.max_steps = max_steps #self._env.env.env.env.env.max_steps = 5000
+
     self.action_repeat = action_repeat
     self._step_counter = 0
     self._random = np.random.RandomState(seed=None)
@@ -104,6 +107,9 @@ class GymGridEnv():
     self._step_counter = 0  # Reset internal timer
     with self.LOCK:
       observation = self._env.reset()
+
+
+    self._env.max_steps = self.max_steps
 
     if isinstance(observation, tuple):
       observation = observation[0]['image']  # 첫 번째 값이 이미지일 가능성이 큼
@@ -124,9 +130,11 @@ class GymGridEnv():
       reward += reward_k
       self._step_counter += 1  # Increment internal timer
 
-      if done:
+      #if done
+      if done or self._step_counter >= self.max_steps:
         observation = self._env.reset()
         RESET = True
+        done = True
 
       if self.life_done:
         done = self._step_counter == self.max_steps
@@ -164,8 +172,10 @@ class GymGridEnv():
     return gym.spaces.Discrete(self.action_size)
 
 class OneHotAction():
-  def __init__(self, env):
+  def __init__(self, env, max_steps):
     self._env = env
+    self._env.max_steps = max_steps
+    self.max_steps = max_steps
     pass
   def __getattr__(self, name):
     return getattr(self._env, name)
@@ -177,9 +187,12 @@ class OneHotAction():
     if not np.allclose(reference, action):
       raise ValueError(f'Invalid one-hot action:\n{action}')
     return self._env.step(index)
+    pass
 
   def reset(self):
+    self._env.max_steps = self.max_steps
     return self._env.reset()
+
 
   def sample_random_action(self):
     action = np.zeros((1, self._env.action_space.n,), dtype=float)
@@ -187,38 +200,12 @@ class OneHotAction():
     action[0, idx] = 1
     return action
 
-class TimeLimit():
-  def __init__(self, env, duration, time_penalty):
+class Collect():
+
+  def __init__(self, env, callbacks=None, precision=32, max_steps:type=int):
     self._env = env
-    self._step = None
-    self._duration = duration
-    self.time_penalty = time_penalty
-
-  def __getattr__(self, name):
-    return getattr(self._env, name)
-
-  def step(self, action):
-    assert self._step is not None, 'Must reset environment.'
-    obs, reward, done, info = self._env.step(action)
-    self._step += 1
-    if self.time_penalty:
-      reward = reward - 1. / self._duration
-
-    if self._step >= self._duration:
-      done = True
-      if 'discount' not in info:
-        info['discount'] = np.array(1.0).astype(np.float32)
-      self._step = None
-    return obs, reward, done, info
-
-  def reset(self):
-    self._step = 0
-    return self._env.reset()
-
-class Collect:
-
-  def __init__(self, env, callbacks=None, precision=32):
-    self._env = env
+    self.max_steps = max_steps
+    self._env.max_steps = max_steps
     self._callbacks = callbacks or ()
     self._precision = precision
     self._episode = None
@@ -247,6 +234,7 @@ class Collect:
 
   def reset(self):
     obs = self._env.reset()
+    self._env.max_steps = self.max_steps
     transition = obs.copy()
     transition['action'] = np.zeros(self._env.action_space.n)
     transition['reward'] = 0.0
@@ -269,10 +257,12 @@ class Collect:
       raise NotImplementedError(value.dtype)
     return value.astype(dtype)
 
-class RewardObs:
+class RewardObs():
 
-  def __init__(self, env):
+  def __init__(self, env, max_steps):
     self._env = env
+    self._env.max_steps = max_steps
+    self.max_steps = max_steps
     pass
   def __getattr__(self, name):
     return getattr(self._env, name)
@@ -288,10 +278,14 @@ class RewardObs:
 
     obs, reward, done, info = self._env.step(action)
     obs['reward'] = reward
+    if done is True :
+      pass
     return obs, reward, done
 
   def reset(self):
     obs = self._env.reset()
+    self._env.max_steps = self.max_steps
+
     obs['reward'] = 0.0
     return obs
 

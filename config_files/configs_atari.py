@@ -9,12 +9,13 @@ cfg = CN({
   'seed': 0,
   'run_id': 'run_0',
   'model': 'dreamer_transformer',
-  'total_steps': 1e7,
+  #'total_steps': 1e7,
+'total_steps': 1000.0,
   'arch':{
     'use_pcont': True,
     'mem_size': 100000,
-    #'prefill': 50000,
-  'prefill': 1000,
+    'prefill': 50000,
+  #'prefill': 1000,
     'H': 15,
     'world_model': {
       'reward_layer': 0,
@@ -117,7 +118,8 @@ cfg = CN({
     'all_actions': False,
     #all_actions': True,
     #'time_penalty': 0.0,
-    'max_steps' : 5000,
+
+    'max_steps' : 1000,
   },
   'rl': {
     'discount': 0.999,
