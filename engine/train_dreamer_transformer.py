@@ -64,7 +64,14 @@ def simulate_test(model, test_env, cfg, global_step, device):
       obs = next_obs
 
 def train(model, cfg, device):
+  wandb.init(project='3ball_CAP', entity='hails', config={
+    "batch_size": cfg.train.batch_size,
+    # "overshooting_distance": cfg.overshooting_distance,
 
+    # "planning_discount": cfg.discount,
+    "total_episodes": cfg.total_steps,
+    "max_steps": cfg.env.max_steps,
+  })
   print("======== Settings ========")
   pprint(cfg)
 
@@ -110,6 +117,7 @@ def train(model, cfg, device):
   train_env.reset()
   steps = count_steps(datadir, cfg)
   length = 0
+  print("Collecting prefill-experience...")
   while steps < cfg.arch.prefill: # prefill 이라고 되어있는 것에서 알수 있듯이 그냥 채우는거(지정한 step 수를 넘기면 breakk)
     action = train_env.sample_random_action() # 진짜 말 그대로 random action 을 뽑겠다는 뜻
     next_obs, reward, done = train_env.step(action[0])
@@ -124,7 +132,7 @@ def train(model, cfg, device):
     length = length * (1. - done)
     if done:
       train_env.reset()
-
+  print("Stop Collect...")
   steps = count_steps(datadir, cfg)
   print(f'collected {steps} steps. Start training...') #여기서 steps은 random action을 취해 리턴을 받은 총 steps을 의미(에피소드1,2,...의 steps 모든 합)
   train_ds = EnvIterDataset(datadir, cfg.train.train_steps, cfg.train.batch_length)
@@ -139,6 +147,7 @@ def train(model, cfg, device):
   input_type = cfg.arch.world_model.input_type
   temp = cfg.arch.world_model.temp_start
   episode_num = 0
+  steps_in_episode = 0
   while episode_num < cfg.total_steps:
 
     with torch.no_grad():
@@ -159,12 +168,27 @@ def train(model, cfg, device):
                                         global_step, 0.1, state, context_len=cfg.train.batch_length)
 
       obs = next_obs
-      if done:
+      steps_in_episode += 1
+      if done:  # 에피소드가 끝나면 로그를 기록하고 초기화
+        # wandb에 로그 기록 (에피소드당 steps, reward)
+        wandb.log({
+          "episode": episode_num,
+          "steps_in_episode": steps_in_episode,
+          "reward": reward
+        }, step=episode_num)
+
+        # 로그 출력
+        print("episode:", episode_num)
+        print("reward:", reward)
+        print("steps_in_episode:", steps_in_episode)
+
+        # 에피소드 카운트 증가 및 환경 초기화
+        episode_num += 1
         train_env.reset()
         state = None
         action_list = torch.zeros(1, 1, cfg.env.action_size).float()  # T, C
         action_list[0, 0, 0] = 1.
-
+        steps_in_episode = 0  # 에피소드가 끝났으므로 steps 초기화
     if global_step % cfg.train.train_every == 0:
 
       temp = anneal_temp(global_step, cfg)
@@ -199,15 +223,7 @@ def train(model, cfg, device):
       grad_norm_actor = model.optimize_actor(actor_loss, actor_optimizer, writer, global_step)
       grad_norm_value = model.optimize_value(value_loss, value_optimizer, writer, global_step)
 
-      wandb.log({
-          "episode": episode_num,
-          "steps": global_step,
-          "reward": reward,
-          "model_loss": model_loss.item(),  # 모델 손실 기록
-          "actor_loss": actor_loss.item(),  # Actor 손실 기록
-          "value_loss": value_loss.item(),  # Value 손실 기록
-          # "mean_value": np.mean(episode_values),  # 필요시 평균 값 기록
-      }, step=episode_num)
+
 
       if global_step % cfg.train.log_every_step == 0:
 
@@ -226,6 +242,15 @@ def train(model, cfg, device):
         for k, v in grad_norm.items():
           writer.add_scalar('train_grad_norm/' + k, v, global_step=global_step)
 
+    # wandb.log({
+    #   "episode": episode_num,
+    #   "steps": global_step,
+    #   "reward": reward,
+    #   # "model_loss": model_loss.item(),  # 모델 손실 기록
+    #   #"actor_loss": actor_loss.item(),  # Actor 손실 기록
+    #   #"value_loss": value_loss.item(),  # Value 손실 기록
+    #   # "mean_value": np.mean(episode_values),  # 필요시 평균 값 기록
+    # }, step=episode_num)
     # evaluate RL
     if global_step % cfg.train.eval_every_step == 0:
       simulate_test(model, test_env, cfg, global_step, device)
@@ -235,7 +260,9 @@ def train(model, cfg, device):
       checkpointer.save('', model, optimizers, global_step, env_step)
 
     global_step += 1
-    pass
+
+  writer.close()
+  wandb.close()
 # def train(model, cfg, device):
 #     wandb.init(project='3ball_CAP', entity='hails', config={
 #         "batch_size": cfg.train.batch_size,

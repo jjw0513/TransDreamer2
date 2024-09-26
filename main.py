@@ -59,23 +59,15 @@ if __name__ == '__main__':
   args = parser.parse_args()
   task, cfg = get_config()
 
-  wandb.init(project=args.wandb_project, entity=args.wandb_entity, config={
-    "batch_size": cfg.train.batch_size,
-    # "overshooting_distance": cfg.overshooting_distance,
+#   wandb.init(project=args.wandb_project, entity=args.wandb_entity, config={
+#     "batch_size": cfg.train.batch_size,
+#     # "overshooting_distance": cfg.overshooting_distance,
+#
+#     # "planning_discount": cfg.discount,
+#     "total_episodes": cfg.total_steps,
+#     "max_steps": cfg.env.max_steps,
+# })
 
-    # "planning_discount": cfg.discount,
-    "total_episodes": cfg.total_steps,
-    "max_steps": cfg.env.max_steps,
-})
-  # wandb.init(project=args.wandb_project, entity=args.wandb_entity, config={
-  #   "batch_size": cfg.batch_size,
-  #   # "overshooting_distance": args.overshooting_distance,
-  #   # "episodes": args.episodes,
-  #   # "chunk_size": args.chunk_size,
-  #   # "planning_horizon": args.planning_horizon,
-  #   # "planning_discount": args.discount,
-  #   "max_steps": cfg.max_steps,
-  # })
 
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
   model = get_model(cfg, device, cfg.seed)
