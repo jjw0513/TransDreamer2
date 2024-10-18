@@ -87,7 +87,7 @@ class GymGridEnv():
   def __init__(self, name, action_repeat, max_steps, life_done=False):
     super().__init__()
     with self.LOCK:
-      env = GymMoreRedBalls(room_size=10,render_mode ="rgb_array")
+      env = GymMoreRedBalls(room_size=10,render_mode ="human")
       #env = RGBImgPartialObsWrapper(env, tile_size=9)  # Get pixel observations, (63, 63, 3)
       env = ActionSpaceWrapper(env, max_steps,new_action_space=3)
       env = FullyCustom(env, max_steps)  # Get rid of the 'mission' field
@@ -135,6 +135,8 @@ class GymGridEnv():
         observation = self._env.reset()
         RESET = True
         done = True
+        print("step_Counter : ",self._step_counter)
+
 
       if self.life_done:
         done = self._step_counter == self.max_steps

@@ -64,14 +64,14 @@ def simulate_test(model, test_env, cfg, global_step, device):
       obs = next_obs
 
 def train(model, cfg, device):
-  wandb.init(project='3ball_CAP', entity='hails', config={
-    "batch_size": cfg.train.batch_size,
-    # "overshooting_distance": cfg.overshooting_distance,
-
-    # "planning_discount": cfg.discount,
-    "total_episodes": cfg.total_steps,
-    "max_steps": cfg.env.max_steps,
-  })
+  # wandb.init(project='3ball_CAP', entity='hails', config={
+  #   "batch_size": cfg.train.batch_size,
+  #   # "overshooting_distance": cfg.overshooting_distance,
+  #
+  #   # "planning_discount": cfg.discount,
+  #   "total_episodes": cfg.total_steps,
+  #   "max_steps": cfg.env.max_steps,
+  # })
   print("======== Settings ========")
   pprint(cfg)
 
@@ -113,7 +113,7 @@ def train(model, cfg, device):
   train_env = make_env(cfg, writer, 'train', datadir, store=True)
   test_env = make_env(cfg, writer, 'test', test_datadir, store=True)
 
-  # fill in length of 5000 frames # 그냥 랜덤행동으로 5000개 채워서 일단 기본적인 행동들 exploration 하는 부분
+
   train_env.reset()
   steps = count_steps(datadir, cfg)
   length = 0
@@ -171,11 +171,11 @@ def train(model, cfg, device):
       steps_in_episode += 1
       if done:  # 에피소드가 끝나면 로그를 기록하고 초기화
         # wandb에 로그 기록 (에피소드당 steps, reward)
-        wandb.log({
-          "episode": episode_num,
-          "steps_in_episode": steps_in_episode,
-          "reward": reward
-        }, step=episode_num)
+        # wandb.log({
+        #   "episode": episode_num,
+        #   "steps_in_episode": steps_in_episode,
+        #   "reward": reward
+        # }, step=episode_num)
 
         # 로그 출력
         print("episode:", episode_num)
@@ -262,7 +262,7 @@ def train(model, cfg, device):
     global_step += 1
 
   writer.close()
-  wandb.close()
+  #wandb.close()
 # def train(model, cfg, device):
 #     wandb.init(project='3ball_CAP', entity='hails', config={
 #         "batch_size": cfg.train.batch_size,
